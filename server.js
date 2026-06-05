@@ -20,7 +20,7 @@ app.post("/send-dm", async (req, res) => {
 
   try {
     context = await chromium.launchPersistentContext("./ig-profile", {
-      headless: false,
+      headless: true,
       viewport: null,
     });
 
