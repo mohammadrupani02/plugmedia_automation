@@ -20,7 +20,7 @@ app.post("/send-dm", async (req, res) => {
 
   try {
     context = await chromium.launchPersistentContext("./ig-profile", {
-      headless: false,
+      headless: true,
       viewport: null,
     });
 
@@ -37,8 +37,18 @@ app.post("/send-dm", async (req, res) => {
           waitUntil: "domcontentloaded",
           timeout: 40000,
         });
+        
+        await page.waitForTimeout(5000);
 
-        await page.waitForTimeout(600000);
+        console.log("Current URL:", page.url());
+        console.log("Page title:", await page.title());
+        
+        await page.screenshot({
+          path: `debug-${username}.png`,
+          fullPage: true,
+        });
+
+        console.log(`Screenshot saved: debug-${username}.png`);
 
         const messageButton = page.getByRole("button", {
           name: "Message",
