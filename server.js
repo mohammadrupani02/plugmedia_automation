@@ -22,11 +22,11 @@ app.post("/send-dm", async (req, res) => {
     context = await chromium.launchPersistentContext("./ig-profile", {
       headless: false,
       viewport: null,
-      // proxy: {
-      //     server: "http://geo.iproyal.com:12321",
-      //     username: "IdTZB3APufSPYoR3",
-      //     password: "6rOn35HNXR6B50KT"
-      // }
+      proxy: {
+          server: "http://185.217.50.69:12323",
+          username: "14a5b304e0a2e",
+          password: "7b841af743"
+      }
     });
 
     for (const influencer of influencers) {
