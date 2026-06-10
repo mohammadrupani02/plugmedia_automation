@@ -69,7 +69,9 @@ app.post("/send-dm", async (req, res) => {
           state: "visible",
           timeout: 15000,
         });
-
+        
+        await textbox.click();
+        
         await textbox.fill(message);
 
         await page.waitForTimeout(2000);
