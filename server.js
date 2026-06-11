@@ -68,7 +68,7 @@ app.post("/send-dm", async (req, res) => {
           timeout: 30000,
         });
         
-        await textbox.fill(message);
+        await page.keyboard.insertText(message);
 
         await page.waitForTimeout(2000);
 
