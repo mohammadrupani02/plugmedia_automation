@@ -61,9 +61,7 @@ app.post("/send-dm", async (req, res) => {
 
         await page.waitForTimeout(5000);
 
-        const textbox = page.getByRole("textbox", {
-          name: "Message",
-        });
+        const textbox = page.locator('[contenteditable="true"]').last();
 
         await textbox.waitFor({
           state: "visible",
