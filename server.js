@@ -10,12 +10,13 @@ app.post("/send-dm", async (req, res) => {
 
   if (!Array.isArray(influencers) || influencers.length === 0) {
     return res.status(400).json({
-      success: false,
       message: "No influencers provided",
     });
   }
 
   const results = [];
+  const MAX_RETRIES = 3;
+
   let context;
 
   try {
@@ -23,80 +24,104 @@ app.post("/send-dm", async (req, res) => {
       headless: false,
       viewport: null,
       proxy: {
-          server: "http://185.217.50.69:12323",
-          username: "14a5b304e0a2e",
-          password: "7b841af743"
-      }
+        server: "http://185.217.50.69:12323",
+        username: "14a5b304e0a2e",
+        password: "7b841af743",
+      },
     });
 
     for (const influencer of influencers) {
       const username = influencer.instagram_username;
       const message = influencer.message;
 
-      const page = await context.newPage();
+      let success = false;
+      let lastError = null;
 
-      try {
-        console.log(`Opening profile: ${username}`);
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const page = await context.newPage();
 
-        await page.goto(`https://www.instagram.com/${username}/`, {
-          waitUntil: "domcontentloaded",
-          timeout: 40000,
-        });
-        
-        await page.waitForTimeout(10000);
+        try {
+          console.log(`[${username}] Attempt ${attempt}/${MAX_RETRIES}`);
 
-        const messageButton = page.getByRole("button", {
-          name: "Message",
-          exact: true,
-        });
+          await page.goto(`https://www.instagram.com/${username}/`, {
+            waitUntil: "domcontentloaded",
+            timeout: 40000,
+          });
 
-        await messageButton.waitFor({
-          state: "visible",
-          timeout: 15000,
-        });
+          await page.waitForTimeout(10000);
 
-        await messageButton.click();
+          const messageButton = page.getByRole("button", {
+            name: "Message",
+            exact: true,
+          });
 
-        console.log(`Opened chat: ${username}`);
+          await messageButton.waitFor({
+            state: "visible",
+            timeout: 15000,
+          });
 
-        await page.waitForTimeout(5000);
+          await messageButton.click();
 
-        const textbox = page.locator('[contenteditable="true"]').last();
+          console.log(`[${username}] Opened chat`);
 
-        await textbox.waitFor({
-          state: "visible",
-          timeout: 30000,
-        });
-        
-        await page.keyboard.insertText(message);
+          await page.waitForTimeout(5000);
 
-        await page.waitForTimeout(2000);
+          const textbox = page.locator('[contenteditable="true"]').last();
 
-        await page.keyboard.press("Enter");
+          await textbox.waitFor({
+            state: "visible",
+            timeout: 15000,
+          });
 
-        console.log(`DM sent: ${username}`);
+          await textbox.fill(message);
 
-        results.push({
-          username,
-          success: true,
-        });
+          await page.waitForTimeout(2000);
 
-        await page.waitForTimeout(8000);
-      } catch (error) {
-        console.error(`Failed for ${username}:`, error.message);
+          await page.keyboard.press("Enter");
 
+          console.log(
+            `[${username}] DM sent successfully on attempt ${attempt}`,
+          );
+
+          results.push({
+            username,
+            success: true,
+            attempts: attempt,
+            message: "DM sent successfully",
+          });
+
+          success = true;
+          break;
+        } catch (error) {
+          lastError = error;
+
+          console.error(
+            `[${username}] Attempt ${attempt} failed: ${error.message}`,
+          );
+
+          if (attempt < MAX_RETRIES) {
+            console.log(`[${username}] Retrying in 5 seconds...`);
+
+            await page.waitForTimeout(5000);
+          }
+        } finally {
+          await page.close();
+        }
+      }
+
+      if (!success) {
         results.push({
           username,
           success: false,
-          error: error.message,
+          attempts: MAX_RETRIES,
+          message: lastError?.message || "Unknown error",
         });
-      } finally {
-        await page.close();
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 8000));
     }
 
     return res.json({
-      success: true,
       total: influencers.length,
       results,
     });
@@ -104,8 +129,7 @@ app.post("/send-dm", async (req, res) => {
     console.error(error);
 
     return res.status(500).json({
-      success: false,
-      error: error.message,
+      message: error.message,
     });
   } finally {
     if (context) {
@@ -114,6 +138,6 @@ app.post("/send-dm", async (req, res) => {
   }
 });
 
-app.listen(3005, '0.0.0.0', () => {
+app.listen(3005, "0.0.0.0", () => {
   console.log("Server running on port 3005");
 });
