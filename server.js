@@ -77,7 +77,18 @@ app.post("/send-dm", async (req, res) => {
 
           await page.waitForTimeout(2000);
 
-          await page.keyboard.press("Enter");
+          const sendButton = page.getByRole("button", {
+            name: "Send",
+          });
+
+          await sendButton.waitFor({
+            state: "visible",
+            timeout: 5000,
+          });
+
+          await sendButton.click();
+
+          await page.waitForTimeout(3000);
 
           console.log(
             `[${username}] DM sent successfully on attempt ${attempt}`,
