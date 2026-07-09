@@ -48,7 +48,7 @@ app.post("/send-dm", async (req, res) => {
             timeout: 40000,
           });
 
-          await page.waitForTimeout(720000);
+          await page.waitForTimeout(10000);
 
           const messageButton = page.getByRole("button", {
             name: "Message",
