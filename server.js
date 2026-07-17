@@ -169,26 +169,13 @@ app.post("/generate-pdf", async (req, res) => {
 
     const mergedPdf = await PDFDocument.create();
 
+    const page = await browser.newPage();
+
+    await page.emulateMedia({
+      media: "screen",
+    });
+
     for (const html of reports) {
-
-      const height = await page.evaluate(() => {
-        return Math.max(
-          document.body.scrollHeight,
-          document.documentElement.scrollHeight
-        );
-      });
-      
-      const page = await browser.newPage({
-        viewport: {
-          width: 1500,
-          height: height+100,
-        },
-        deviceScaleFactor: 2,
-      });
-
-      await page.emulateMedia({
-        media: "screen",
-      });
 
       await page.setContent(html, {
         waitUntil: "load",
@@ -199,10 +186,8 @@ app.post("/generate-pdf", async (req, res) => {
 
       // Wait for images
       await page.evaluate(async () => {
-        const images = Array.from(document.images);
-
         await Promise.all(
-          images.map(img => {
+          Array.from(document.images).map(img => {
             if (img.complete) return Promise.resolve();
 
             return new Promise(resolve => {
@@ -213,11 +198,16 @@ app.post("/generate-pdf", async (req, res) => {
         );
       });
 
-      // Wait for Chart.js
-      await page.waitForFunction(() => typeof Chart !== "undefined");
+      // Wait for Chart.js if present
+      try {
+        await page.waitForFunction(
+          () => typeof window.Chart !== "undefined",
+          { timeout: 5000 }
+        );
+      } catch {}
 
-      // Allow charts to finish animating
-      await page.waitForTimeout(2000);
+      // Give charts time to finish rendering
+      await page.waitForTimeout(1500);
 
       const pdfBuffer = await page.pdf({
         width: "1520px",
@@ -240,13 +230,10 @@ app.post("/generate-pdf", async (req, res) => {
         pdfDoc.getPageIndices()
       );
 
-      copiedPages.forEach(page => {
-        mergedPdf.addPage(page);
-      });
-
-      await page.close();
+      copiedPages.forEach(p => mergedPdf.addPage(p));
     }
 
+    await page.close();
     await browser.close();
 
     const finalPdf = await mergedPdf.save();
@@ -260,7 +247,6 @@ app.post("/generate-pdf", async (req, res) => {
     return res.send(Buffer.from(finalPdf));
 
   } catch (err) {
-
     if (browser) {
       await browser.close();
     }
