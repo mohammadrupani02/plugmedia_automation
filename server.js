@@ -215,7 +215,7 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     });
 
     const pdf = await page.pdf({
-      width: "1500px",
+      width: "1600px",
       height: `${pageHeight}px`,
       printBackground: true,
       preferCSSPageSize: true,
