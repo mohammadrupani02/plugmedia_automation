@@ -171,82 +171,60 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
       headless: true,
     });
 
-    const page = await browser.newPage();
-
-    await page.setViewportSize({
-      width: 1500,
-      height: 1000,
-    });
-
-    await page.setContent(html, {
-      waitUntil: "networkidle",
+    const page = await browser.newPage({
+      viewport: {
+        width: 1500,
+        height: 1000,
+      },
+      deviceScaleFactor: 2,
     });
 
     await page.emulateMedia({
       media: "screen",
     });
 
-    await page.addStyleTag({
-  content: `
-    @page {
-      margin: 0;
-    }
+    await page.setContent(html, {
+      waitUntil: "load",
+    });
 
-    html,
-    body {
-      width: 1500px !important;
-      min-width: 1500px !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow-x: hidden !important;
-      background: #f5f6fa !important;
-    }
+    // Wait for images
+    await page.evaluate(async () => {
+      await Promise.all(
+        Array.from(document.images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+    });
 
-    .report {
-      width: 1500px !important;
-      max-width: 1500px !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
-    }
+    // Wait for fonts
+    await page.evaluate(() => document.fonts.ready);
 
-    /* Allow Chromium to split content naturally */
-    * {
-      break-inside: auto !important;
-      page-break-inside: auto !important;
-    }
+    // Wait for Chart.js
+    await page.waitForFunction(() => {
+      return window.Chart &&
+             document.querySelectorAll("canvas").length > 0;
+    });
 
-    .card,
-    .grid,
-    .two-grid,
-    .posts-grid,
-    .chart-container {
-      break-inside: auto !important;
-      page-break-inside: auto !important;
-    }
+    // Give charts time to finish animating
+    await page.waitForTimeout(2000);
 
-    .influencer-page-break {
-      display: none !important;
-    }
-  `
-});
-
-    await page.waitForFunction(() => typeof Chart !== "undefined");
-    await page.waitForFunction(() => document.fonts.status === "loaded");
-    await page.waitForTimeout(3000);
-    
     const pdf = await page.pdf({
-  width: "1520px",
-  printBackground: true,
-  preferCSSPageSize: false,
-  margin: {
-    top: "0",
-    right: "0",
-    bottom: "0",
-    left: "0",
-  },
-  tagged: false,
-  outline: false
-});
+      width: "1520px",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0px",
+        right: "0px",
+        bottom: "0px",
+        left: "0px",
+      },
+      tagged: false,
+      outline: false,
+    });
 
     await browser.close();
 
