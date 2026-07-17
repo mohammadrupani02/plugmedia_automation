@@ -187,11 +187,17 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
       waitUntil: "load",
     });
 
+    // Wait for fonts
+    await page.evaluate(() => document.fonts.ready);
+
     // Wait for images
     await page.evaluate(async () => {
+      const images = Array.from(document.images);
+
       await Promise.all(
-        Array.from(document.images).map(img => {
+        images.map(img => {
           if (img.complete) return Promise.resolve();
+
           return new Promise(resolve => {
             img.onload = resolve;
             img.onerror = resolve;
@@ -200,37 +206,27 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
       );
     });
 
-    // Wait for fonts
-    await page.evaluate(() => document.fonts.ready);
-
     // Wait for Chart.js
     await page.waitForFunction(() => {
-      return window.Chart &&
-             document.querySelectorAll("canvas").length > 0;
+      return typeof Chart !== "undefined";
     });
 
-    // Give charts time to finish animating
+    // Allow charts to finish rendering
     await page.waitForTimeout(2000);
 
-    const height = await page.evaluate(() => {
-  return Math.max(
-    document.documentElement.scrollHeight,
-    document.body.scrollHeight
-  );
-});
-
-const pdf = await page.pdf({
-  width: "1520px",
-  height: `${height}px`,
-  printBackground: true,
-  preferCSSPageSize: false,
-  margin: {
-    top: "0",
-    right: "0",
-    bottom: "0",
-    left: "0",
-  },
-});
+    const pdf = await page.pdf({
+      width: "1520px",
+      printBackground: true,
+      preferCSSPageSize: true,
+      tagged: false,
+      outline: false,
+      margin: {
+        top: "0px",
+        right: "0px",
+        bottom: "0px",
+        left: "0px",
+      },
+    });
 
     await browser.close();
 
@@ -243,7 +239,9 @@ const pdf = await page.pdf({
     return res.send(pdf);
 
   } catch (err) {
-    if (browser) await browser.close();
+    if (browser) {
+      await browser.close();
+    }
 
     console.error(err);
 
