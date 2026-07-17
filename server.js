@@ -212,19 +212,25 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     // Give charts time to finish animating
     await page.waitForTimeout(2000);
 
-    const pdf = await page.pdf({
-      width: "1520px",
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: "0px",
-        right: "0px",
-        bottom: "0px",
-        left: "0px",
-      },
-      tagged: false,
-      outline: false,
-    });
+    const height = await page.evaluate(() => {
+  return Math.max(
+    document.documentElement.scrollHeight,
+    document.body.scrollHeight
+  );
+});
+
+const pdf = await page.pdf({
+  width: "1520px",
+  height: `${height}px`,
+  printBackground: true,
+  preferCSSPageSize: false,
+  margin: {
+    top: "0",
+    right: "0",
+    bottom: "0",
+    left: "0",
+  },
+});
 
     await browser.close();
 
