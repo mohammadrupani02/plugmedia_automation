@@ -171,10 +171,17 @@ app.post("/generate-pdf", async (req, res) => {
 
     for (const html of reports) {
 
+      const height = await page.evaluate(() => {
+        return Math.max(
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight
+        );
+      });
+      
       const page = await browser.newPage({
         viewport: {
           width: 1500,
-          height: 1000,
+          height: height+100,
         },
         deviceScaleFactor: 2,
       });
