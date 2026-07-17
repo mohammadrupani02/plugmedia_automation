@@ -1,6 +1,12 @@
 const express = require("express");
 const { chromium } = require("playwright");
 
+const multer = require("multer");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+});
+
 const app = express();
 
 app.use(express.json());
@@ -149,46 +155,63 @@ app.post("/send-dm", async (req, res) => {
   }
 });
 
-app.post("/generate-pdf", async (req, res) => {
-  const { html } = req.body;
-
-  if (!html) {
-    return res.status(400).json({
-      message: "html is required",
-    });
-  }
-
-  const browser = await chromium.launch({
-    headless: true,
-  });
+app.post("/generate-pdf", upload.single("file"), async (req, res) => {
+  let browser;
 
   try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No HTML file received",
+      });
+    }
+
+    const html = req.file.buffer.toString("utf8");
+
+    browser = await chromium.launch({
+      headless: true,
+    });
+
     const page = await browser.newPage();
 
     await page.setContent(html, {
       waitUntil: "networkidle",
     });
 
+    await page.emulateMedia({
+      media: "screen",
+    });
+
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
+      preferCSSPageSize: true,
       margin: {
-        top: "20px",
-        bottom: "20px",
-        left: "20px",
-        right: "20px",
+        top: "15px",
+        bottom: "15px",
+        left: "15px",
+        right: "15px",
       },
     });
+
+    await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=InfluencerReport.pdf"
+      'attachment; filename="InfluencerReport.pdf"'
     );
 
-    res.send(pdf);
-  } finally {
-    await browser.close();
+    return res.send(pdf);
+
+  } catch (err) {
+    if (browser) await browser.close();
+
+    console.error(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 });
 
