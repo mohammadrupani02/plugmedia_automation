@@ -174,30 +174,58 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     const page = await browser.newPage();
 
     await page.setViewportSize({
-  width: 1600,
-  height: 3000,
-});
+      width: 1500,
+      height: 1000,
+    });
 
-await page.setContent(html, {
-  waitUntil: "load",
-});
-
-await page.waitForTimeout(3000);
-
-await page.emulateMedia({
-  media: "screen",
-});
+    await page.setContent(html, {
+      waitUntil: "networkidle",
+    });
 
     await page.emulateMedia({
       media: "screen",
     });
 
+    await page.addStyleTag({
+      content: `
+        html, body {
+          width: 1500px !important;
+          min-width: 1500px !important;
+          overflow-x: hidden !important;
+          background: #f5f6fa !important;
+        }
+
+        .report{
+          width:1500px !important;
+          max-width:1500px !important;
+          margin:auto !important;
+        }
+      `
+    });
+
+    await page.waitForFunction(() => typeof Chart !== "undefined");
+    await page.waitForFunction(() => document.fonts.status === "loaded");
+    await page.waitForTimeout(3000);
+
+    const pageHeight = await page.evaluate(() => {
+      return Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      );
+    });
+
     const pdf = await page.pdf({
-  format: "A4",
-  printBackground: true,
-  preferCSSPageSize: true,
-  scale: 1,
-});
+      width: "1500px",
+      height: `${pageHeight}px`,
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0px",
+        right: "0px",
+        bottom: "0px",
+        left: "0px",
+      },
+    });
 
     await browser.close();
 
