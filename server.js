@@ -210,7 +210,7 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     const pdf = await page.pdf({
   width: "1520px",
   printBackground: true,
-  preferCSSPageSize: true,
+  preferCSSPageSize: false,
   margin: {
     top: "0",
     right: "0",
