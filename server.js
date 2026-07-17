@@ -187,21 +187,40 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     });
 
     await page.addStyleTag({
-      content: `
-        html, body {
-          width: 1500px !important;
-          min-width: 1500px !important;
-          overflow-x: hidden !important;
-          background: #f5f6fa !important;
-        }
+  content: `
+    @page {
+      margin: 0;
+    }
 
-        .report{
-          width:1500px !important;
-          max-width:1500px !important;
-          margin:auto !important;
-        }
-      `
-    });
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .report {
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .report:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    .card {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .influencer-page-break {
+      display: none !important;
+    }
+  `
+});
 
     await page.waitForFunction(() => typeof Chart !== "undefined");
     await page.waitForFunction(() => document.fonts.status === "loaded");
