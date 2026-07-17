@@ -173,25 +173,31 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
 
     const page = await browser.newPage();
 
-    await page.setContent(html, {
-      waitUntil: "networkidle",
-    });
+    await page.setViewportSize({
+  width: 1600,
+  height: 3000,
+});
+
+await page.setContent(html, {
+  waitUntil: "load",
+});
+
+await page.waitForTimeout(3000);
+
+await page.emulateMedia({
+  media: "screen",
+});
 
     await page.emulateMedia({
       media: "screen",
     });
 
     const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: "15px",
-        bottom: "15px",
-        left: "15px",
-        right: "15px",
-      },
-    });
+  format: "A4",
+  printBackground: true,
+  preferCSSPageSize: true,
+  scale: 1,
+});
 
     await browser.close();
 
