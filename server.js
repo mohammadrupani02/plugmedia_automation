@@ -186,8 +186,10 @@ app.post("/generate-pdf", async (req, res) => {
 
       // Wait for images
       await page.evaluate(async () => {
+        const images = Array.from(document.images);
+
         await Promise.all(
-          Array.from(document.images).map(img => {
+          images.map(img => {
             if (img.complete) return Promise.resolve();
 
             return new Promise(resolve => {
@@ -204,10 +206,12 @@ app.post("/generate-pdf", async (req, res) => {
           () => typeof window.Chart !== "undefined",
           { timeout: 5000 }
         );
-      } catch {}
+      } catch (e) {
+        // Ignore if Chart.js isn't used
+      }
 
-      // Give charts time to finish rendering
-      await page.waitForTimeout(1500);
+      // Wait for animations
+      await page.waitForTimeout(2000);
 
       const pdfBuffer = await page.pdf({
         width: "1520px",
@@ -247,6 +251,7 @@ app.post("/generate-pdf", async (req, res) => {
     return res.send(Buffer.from(finalPdf));
 
   } catch (err) {
+
     if (browser) {
       await browser.close();
     }
