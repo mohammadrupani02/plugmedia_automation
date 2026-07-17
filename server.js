@@ -188,20 +188,44 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
 
     await page.addStyleTag({
   content: `
-    .influencer-page-break{
-      display:none !important;
+    @page {
+      margin: 0;
     }
 
-    .report{
-      page-break-after:always;
-      break-after:page;
-      page-break-inside:auto !important;
-      break-inside:auto !important;
+    html,
+    body {
+      width: 1500px !important;
+      min-width: 1500px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow-x: hidden !important;
+      background: #f5f6fa !important;
     }
 
-    .card{
-      page-break-inside:avoid;
-      break-inside:avoid;
+    .report {
+      width: 1500px !important;
+      max-width: 1500px !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+    }
+
+    /* Allow Chromium to split content naturally */
+    * {
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+    }
+
+    .card,
+    .grid,
+    .two-grid,
+    .posts-grid,
+    .chart-container {
+      break-inside: auto !important;
+      page-break-inside: auto !important;
+    }
+
+    .influencer-page-break {
+      display: none !important;
     }
   `
 });
