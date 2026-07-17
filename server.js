@@ -206,16 +206,9 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     await page.waitForFunction(() => typeof Chart !== "undefined");
     await page.waitForFunction(() => document.fonts.status === "loaded");
     await page.waitForTimeout(3000);
-
-    const pageWidth = await page.evaluate(() =>
-  Math.max(
-    document.documentElement.scrollWidth,
-    document.body.scrollWidth
-  )
-);
-
-const pdf = await page.pdf({
-  width: `${pageWidth + 40}px`,
+    
+    const pdf = await page.pdf({
+  width: "1520px",
   printBackground: true,
   preferCSSPageSize: false,
   margin: {
