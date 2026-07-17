@@ -149,6 +149,49 @@ app.post("/send-dm", async (req, res) => {
   }
 });
 
+app.post("/generate-pdf", async (req, res) => {
+  const { html } = req.body;
+
+  if (!html) {
+    return res.status(400).json({
+      message: "html is required",
+    });
+  }
+
+  const browser = await chromium.launch({
+    headless: true,
+  });
+
+  try {
+    const page = await browser.newPage();
+
+    await page.setContent(html, {
+      waitUntil: "networkidle",
+    });
+
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20px",
+        bottom: "20px",
+        left: "20px",
+        right: "20px",
+      },
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=InfluencerReport.pdf"
+    );
+
+    res.send(pdf);
+  } finally {
+    await browser.close();
+  }
+});
+
 app.listen(3005, "0.0.0.0", () => {
   console.log("Server running on port 3005");
 });
