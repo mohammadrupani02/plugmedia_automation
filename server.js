@@ -188,36 +188,20 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
 
     await page.addStyleTag({
   content: `
-    @page {
-      margin: 0;
+    .influencer-page-break{
+      display:none !important;
     }
 
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
+    .report{
+      page-break-after:always;
+      break-after:page;
+      page-break-inside:auto !important;
+      break-inside:auto !important;
     }
 
-    .report {
-      page-break-after: always;
-      break-after: page;
-      page-break-inside: avoid;
-      break-inside: avoid;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    .report:last-child {
-      page-break-after: auto;
-      break-after: auto;
-    }
-
-    .card {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    .influencer-page-break {
-      display: none !important;
+    .card{
+      page-break-inside:avoid;
+      break-inside:avoid;
     }
   `
 });
@@ -234,8 +218,10 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     top: "0",
     right: "0",
     bottom: "0",
-    left: "0"
-  }
+    left: "0",
+  },
+  tagged: false,
+  outline: false
 });
 
     await browser.close();
