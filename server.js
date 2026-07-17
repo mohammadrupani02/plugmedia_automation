@@ -1,11 +1,6 @@
 const express = require("express");
 const { chromium } = require("playwright");
-
-const multer = require("multer");
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-});
+const { PDFDocument } = require("pdf-lib");
 
 const app = express();
 
@@ -155,80 +150,99 @@ app.post("/send-dm", async (req, res) => {
   }
 });
 
-app.post("/generate-pdf", upload.single("file"), async (req, res) => {
+app.post("/generate-pdf", async (req, res) => {
   let browser;
 
   try {
-    if (!req.file) {
+    const reports = req.body.reports;
+
+    if (!Array.isArray(reports) || reports.length === 0) {
       return res.status(400).json({
-        message: "No HTML file received",
+        success: false,
+        message: "No HTML reports received",
       });
     }
-
-    const html = req.file.buffer.toString("utf8");
 
     browser = await chromium.launch({
       headless: true,
     });
 
-    const page = await browser.newPage({
-      viewport: {
-        width: 1500,
-        height: 1000,
-      },
-      deviceScaleFactor: 2,
-    });
+    const mergedPdf = await PDFDocument.create();
 
-    await page.emulateMedia({
-      media: "screen",
-    });
+    for (const html of reports) {
 
-    await page.setContent(html, {
-      waitUntil: "load",
-    });
+      const page = await browser.newPage({
+        viewport: {
+          width: 1500,
+          height: 1000,
+        },
+        deviceScaleFactor: 2,
+      });
 
-    // Wait for fonts
-    await page.evaluate(() => document.fonts.ready);
+      await page.emulateMedia({
+        media: "screen",
+      });
 
-    // Wait for images
-    await page.evaluate(async () => {
-      const images = Array.from(document.images);
+      await page.setContent(html, {
+        waitUntil: "load",
+      });
 
-      await Promise.all(
-        images.map(img => {
-          if (img.complete) return Promise.resolve();
+      // Wait for fonts
+      await page.evaluate(() => document.fonts.ready);
 
-          return new Promise(resolve => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        })
+      // Wait for images
+      await page.evaluate(async () => {
+        const images = Array.from(document.images);
+
+        await Promise.all(
+          images.map(img => {
+            if (img.complete) return Promise.resolve();
+
+            return new Promise(resolve => {
+              img.onload = resolve;
+              img.onerror = resolve;
+            });
+          })
+        );
+      });
+
+      // Wait for Chart.js
+      await page.waitForFunction(() => typeof Chart !== "undefined");
+
+      // Allow charts to finish animating
+      await page.waitForTimeout(2000);
+
+      const pdfBuffer = await page.pdf({
+        width: "1520px",
+        printBackground: true,
+        preferCSSPageSize: true,
+        tagged: false,
+        outline: false,
+        margin: {
+          top: "0px",
+          right: "0px",
+          bottom: "0px",
+          left: "0px",
+        },
+      });
+
+      const pdfDoc = await PDFDocument.load(pdfBuffer);
+
+      const copiedPages = await mergedPdf.copyPages(
+        pdfDoc,
+        pdfDoc.getPageIndices()
       );
-    });
 
-    // Wait for Chart.js
-    await page.waitForFunction(() => {
-      return typeof Chart !== "undefined";
-    });
+      copiedPages.forEach(page => {
+        mergedPdf.addPage(page);
+      });
 
-    // Allow charts to finish rendering
-    await page.waitForTimeout(2000);
-
-    const pdf = await page.pdf({
-      width: "1520px",
-      printBackground: true,
-      preferCSSPageSize: true,
-      tagged: false,
-      outline: false,
-      margin: {
-        top: "0px",
-        right: "0px",
-        bottom: "0px",
-        left: "0px",
-      },
-    });
+      await page.close();
+    }
 
     await browser.close();
+
+    const finalPdf = await mergedPdf.save();
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -236,9 +250,10 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
       'attachment; filename="InfluencerReport.pdf"'
     );
 
-    return res.send(pdf);
+    return res.send(Buffer.from(finalPdf));
 
   } catch (err) {
+
     if (browser) {
       await browser.close();
     }
