@@ -207,15 +207,23 @@ app.post("/generate-pdf", upload.single("file"), async (req, res) => {
     await page.waitForFunction(() => document.fonts.status === "loaded");
     await page.waitForTimeout(3000);
     
-    const pdf = await page.pdf({
+    const pageHeight = await page.evaluate(() =>
+  Math.max(
+    document.documentElement.scrollHeight,
+    document.body.scrollHeight
+  )
+);
+
+const pdf = await page.pdf({
   width: "1520px",
+  height: `${pageHeight}px`,
   printBackground: true,
   preferCSSPageSize: false,
   margin: {
-    top: "0px",
-    right: "0px",
-    bottom: "0px",
-    left: "0px",
+    top: "0",
+    right: "0",
+    bottom: "0",
+    left: "0"
   }
 });
 
