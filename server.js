@@ -24,24 +24,12 @@ app.post("/send-dm", async (req, res) => {
     context = await chromium.launchPersistentContext("./ig-profile", {
       headless: false,
       viewport: null,
-      locale: "en-GB",
-      timezoneId: "Europe/Oslo",
       proxy: {
-        server: "http://185.217.50.69:12323",
-        username: "14a5b304e0a2e",
-        password: "7b841af743",
+        server: "http://188.126.25.31",
+        username: "14ab9d678d463",
+        password: "1d98a33877",
       },
     });
-
-    const checkPage = await context.newPage();
-
-await checkPage.goto("https://api.ipify.org");
-console.log("Current Proxy IP:", await checkPage.textContent("body"));
-
-await checkPage.goto("https://ipinfo.io/json");
-console.log(await checkPage.textContent("body"));
-
-await checkPage.close();
 
     for (const influencer of influencers) {
       const username = influencer.instagram_username;
