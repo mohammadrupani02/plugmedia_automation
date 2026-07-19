@@ -25,7 +25,7 @@ app.post("/send-dm", async (req, res) => {
       headless: false,
       viewport: null,
       proxy: {
-        server: "http://188.126.25.31",
+        server: "http://188.126.25.31:12323",
         username: "14ab9d678d463",
         password: "1d98a33877",
       },
